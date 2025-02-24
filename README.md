@@ -1,4 +1,4 @@
-# build_hydro_db
+# Build Hydro DataBase Brazil
 
 ## Overview
 This repository builds a hydrological database using data from ANA (Agência Nacional de Águas e Saneamento Básico). The system:
@@ -118,7 +118,7 @@ conn.close()
 
 ## Notes
 
-* The database uses **foreign keys** for integrity.n
+* The database uses **foreign keys** for integrity
 * The `timeseries` table is updated dynamically to **prevent memory issues**.
 * API requests can take **a long time**, depending on the number of stations.
 
