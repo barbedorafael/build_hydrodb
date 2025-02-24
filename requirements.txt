@@ -1,0 +1,4 @@
+# Core dependencies
+pandas==2.0.3       # Data manipulation and processing
+requests==2.31.0    # API requests
+sqlite3             # SQLite database (built-in with Python)
