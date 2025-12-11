@@ -3,18 +3,6 @@ import requests
 import xml.etree.ElementTree as ET
 import sqlite3
 
-# 🔹 SQLite Database File
-db_file = "data/hydrodata.sqlite"
-conn = sqlite3.connect(db_file)
-cursor = conn.cursor()
-
-# Load Station Numbers from SQLite (Instead of CSV)
-cursor.execute("SELECT station_id FROM stations;")
-station_codes = [row[0] for row in cursor.fetchall()]
-
-# Define Base URL
-base_url = "http://telemetriaws1.ana.gov.br/ServiceANA.asmx/HidroSerieHistorica"
-
 # Function to Parse XML and Insert into SQLite
 def parse_and_insert(response_text, station, tipo_dados, nivel_consistencia):
     root = ET.fromstring(response_text)
@@ -61,13 +49,26 @@ def parse_and_insert(response_text, station, tipo_dados, nivel_consistencia):
             VALUES (?, ?, ?, ?, ?, ?, ?);
         """, records)
 
-# 🔹 Fetch and Process Data for Each Station
+
+# SQLite Database File
+db_file = "data/hydrodata.sqlite"
+conn = sqlite3.connect(db_file)
+cursor = conn.cursor()
+
+# Load Station Numbers from SQLite (Instead of CSV)
+cursor.execute("SELECT station_id FROM stations WHERE basin_id IN (7, 8);")
+station_codes = [row[0] for row in cursor.fetchall()]
+
+# Define Base URL
+base_url = "http://telemetriaws1.ana.gov.br/ServiceANA.asmx/HidroSerieHistorica"
+
+# Fetch and Process Data for Each Station
 for station in station_codes:
-    for tipo_dados in [1, 2, 3]:  # Iterate Over Types
+    for tipo_dados in [1, 3]:  # Iterate Over Types
         for nivel_consistencia in [1, 2]:  # Iterate Over Consistency Levels
             params = {
                 "codEstacao": str(station),
-                "dataInicio": "01/01/1900",
+                "dataInicio": "01/01/1990",
                 "dataFim": "",
                 "tipoDados": str(tipo_dados),
                 "nivelConsistencia": str(nivel_consistencia)
