@@ -1,6 +1,7 @@
 # Ignore SQLite database files
 *.sqlite
 data/*
+spatial/*
 
 # Ignore Python virtual environment
 venv/

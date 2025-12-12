@@ -9,6 +9,7 @@ def parse_and_insert(response_text, station, tipo_dados, nivel_consistencia):
     parser = root.findall(".//SerieHistorica")
 
     if not parser:
+        print("No data found for station")
         return  # Skip if no data
 
     prefix_dict = {1: "Cota",
@@ -16,7 +17,6 @@ def parse_and_insert(response_text, station, tipo_dados, nivel_consistencia):
                    3: "Vazao"}
     prefix = prefix_dict[tipo_dados]
 
-    print(f"Processing station {station} - Type: {tipo_dados}, Consistency: {nivel_consistencia}")
     records = []
     for serie in parser:
         # Extract Year and Month from DataHora
@@ -39,15 +39,16 @@ def parse_and_insert(response_text, station, tipo_dados, nivel_consistencia):
                                 f"{year}-{month:02d}-{day:02d}", value, status, method))
     
     # Sort records by date before inserting
-    records.sort(key=lambda x: x[3])  # Sorting by 'date' column (index 3)
-    print(f"Period of Records: {records[0][3]} to {records[-1][3]}")
-    
-    # Insert Records in Bulk to SQLite
-    with conn:
-        conn.executemany("""
-            INSERT OR IGNORE INTO timeseries (station_id, type_id, consistency_id, date, value, status, method_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?);
-        """, records)
+    if records:
+        records.sort(key=lambda x: x[3])  # Sorting by 'date' column (index 3)
+        print(f"Period of Records: {records[0][3]} to {records[-1][3]}")
+        
+        # Insert Records in Bulk to SQLite
+        with conn:
+            conn.executemany("""
+                INSERT OR IGNORE INTO timeseries (station_id, type_id, consistency_id, date, value, status, method_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?);
+            """, records)
 
 
 # SQLite Database File
@@ -56,18 +57,21 @@ conn = sqlite3.connect(db_file)
 cursor = conn.cursor()
 
 # Load Station Numbers from SQLite (Instead of CSV)
-cursor.execute("SELECT station_id FROM stations WHERE basin_id IN (7, 8);")
-station_codes = [row[0] for row in cursor.fetchall()]
+cursor.execute("SELECT station_id, name FROM stations " \
+               "    WHERE basin_id IN (7, 8)" \
+               "    AND state_id in (23, 24)" \
+               "    AND station_type = 1;")
+stations = [(row[0], row[1]) for row in cursor.fetchall()]
 
 # Define Base URL
 base_url = "http://telemetriaws1.ana.gov.br/ServiceANA.asmx/HidroSerieHistorica"
 
 # Fetch and Process Data for Each Station
-for station in station_codes:
+for station in stations:
     for tipo_dados in [1, 3]:  # Iterate Over Types
         for nivel_consistencia in [1, 2]:  # Iterate Over Consistency Levels
             params = {
-                "codEstacao": str(station),
+                "codEstacao": str(station[0]),
                 "dataInicio": "01/01/1990",
                 "dataFim": "",
                 "tipoDados": str(tipo_dados),
@@ -78,7 +82,8 @@ for station in station_codes:
                 response = requests.get(base_url, params=params)
                 
                 if response.status_code == 200:
-                    parse_and_insert(response.text, station, tipo_dados, nivel_consistencia)
+                    print(f"Processing station {station}: - Type: {tipo_dados}, Consistency: {nivel_consistencia}")
+                    parse_and_insert(response.text, station[0], tipo_dados, nivel_consistencia)
                 else:
                     print(f"Failed for station {station} - Tipo: {tipo_dados}, Consistency: {nivel_consistencia} - Status Code: {response.status_code}")
 
