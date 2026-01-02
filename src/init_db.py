@@ -1,6 +1,6 @@
 import sqlite3
 
-# 🔹 SQLite Database File
+# SQLite Database File
 db_file = "data/hydrodata.sqlite"
 
 # Connect to SQLite Database
@@ -14,7 +14,7 @@ def execute_sql_file(filename):
     cursor.executescript(sql_script)
     conn.commit()
 
-# 🔹 Run Table Creation and Metadata Insertion
+# Run Table Creation and Metadata Insertion
 execute_sql_file("sql/create_tables.sql")
 execute_sql_file("sql/populate_metadata.sql")
 

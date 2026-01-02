@@ -4,13 +4,7 @@ import xml.etree.ElementTree as ET
 import sqlite3
 
 # Function to Parse XML and Insert into SQLite
-def parse_and_insert(response_text, station, tipo_dados, nivel_consistencia):
-    root = ET.fromstring(response_text)
-    parser = root.findall(".//SerieHistorica")
-
-    if not parser:
-        print("No data found for station")
-        return  # Skip if no data
+def parse_and_insert(parser, station, tipo_dados, nivel_consistencia):
 
     prefix_dict = {1: "Cota",
                    2: "Chuva",
@@ -72,7 +66,7 @@ for station in stations:
         for nivel_consistencia in [1, 2]:  # Iterate Over Consistency Levels
             params = {
                 "codEstacao": str(station[0]),
-                "dataInicio": "01/01/1990",
+                "dataInicio": "01/01/1900",
                 "dataFim": "",
                 "tipoDados": str(tipo_dados),
                 "nivelConsistencia": str(nivel_consistencia)
@@ -82,8 +76,14 @@ for station in stations:
                 response = requests.get(base_url, params=params)
                 
                 if response.status_code == 200:
-                    print(f"Processing station {station}: - Type: {tipo_dados}, Consistency: {nivel_consistencia}")
-                    parse_and_insert(response.text, station[0], tipo_dados, nivel_consistencia)
+                    root = ET.fromstring(response.text)
+                    parser = root.findall(".//SerieHistorica")
+
+                    if not parser:
+                        print(f"No data found for station {station}")
+                    else:
+                        print(f"Processing station {station}: - Type: {tipo_dados}, Consistency: {nivel_consistencia} \n URL: {response.url}")
+                        parse_and_insert(parser, station[0], tipo_dados, nivel_consistencia)
                 else:
                     print(f"Failed for station {station} - Tipo: {tipo_dados}, Consistency: {nivel_consistencia} - Status Code: {response.status_code}")
 
